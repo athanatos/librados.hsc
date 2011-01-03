@@ -421,3 +421,43 @@ radosTrunc pool oid size = do
   free strptr
   wrapErrorCode (return ()) result
 
+-- Completions
+type RadosCompletion = Ptr ()
+type HRadosCallback = RadosCompletion -> Ptr () -> IO ()
+type CRadosCallback = FunPtr HRadosCallback
+foreign import ccall "wrapper"
+   mkCRadosCallback :: HRadosCallback -> IO CRadosCallback
+
+foreign import ccall "rados_aio_create_completion"
+  c_radosAioCreateCompletion :: Ptr () -> RadosCallback -> RadosCallback -> Ptr RadosCompletion -> IO CInt
+foreign import ccall "rados_aio_wait_for_complete"
+  c_radosAioWaitForComplete :: RadosCompletion -> IO CInt
+foreign import ccall "rados_aio_wait_for_safe"
+  c_radosAioWaitForComplete :: RadosCompletion -> IO CInt
+foreign import ccall "rados_aio_is_complete"
+  c_radosAioIsComplete :: RadosCompletion -> IO CInt
+foreign import ccall "rados_aio_is_safe"
+  c_radosAioIsSafe :: RadosCompletion -> IO CInt
+foreign import ccall "rados_aio_get_return_value"
+  c_radosAioGetReturnValue :: RadosCompletion -> IO CInt
+foreign import ccall "rados_aio_release" 
+  c_radosAioRelease :: RadosCompletion -> IO ()
+
+-- AIO
+type AioDispatch = RadosPool -> Ptr CChar -> CInt -> Ptr CChar -> CInt -> RadosCompletion -> IO CInt
+foreign import ccall "rados_aio_write" c_radosAioWrite :: AioDispatch
+foreign import ccall "rados_aio_write_full" c_radosAioWriteFull :: AioDispatch
+foreign import ccall "rados_aio_read" c_radosAioRead :: AioDispatch
+
+-- Haskell AIO Wrappers
+type RadosCallback = RadosCompletion -> IO ()
+
+radosAioCreateCompletion :: RadosCallback -> RadosCallback -> IO RadosCompletion
+radosAioCreateCompletion complete safe = do
+  wrappedComplete <- mkCRadosCallback (\comp _ -> complete comp)
+  wrappedSafe <- mkCRadosCallback (\comp _ -> safe comp)
+  completionPtr <- (malloc :: (IO (Ptr RadosCompletion)))
+  result <- c_radosAioCreateCompletion nullPtr wrappedComplete wrappedSafe completionPtr
+  retval <- peek completionPtr
+  free wrappedSafe
+  wrapErrorCode (return retval) result
