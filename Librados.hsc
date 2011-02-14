@@ -429,11 +429,11 @@ foreign import ccall "wrapper"
    mkCRadosCallback :: HRadosCallback -> IO CRadosCallback
 
 foreign import ccall "rados_aio_create_completion"
-  c_radosAioCreateCompletion :: Ptr () -> RadosCallback -> RadosCallback -> Ptr RadosCompletion -> IO CInt
+  c_radosAioCreateCompletion :: Ptr () -> CRadosCallback -> CRadosCallback -> Ptr RadosCompletion -> IO CInt
 foreign import ccall "rados_aio_wait_for_complete"
   c_radosAioWaitForComplete :: RadosCompletion -> IO CInt
 foreign import ccall "rados_aio_wait_for_safe"
-  c_radosAioWaitForComplete :: RadosCompletion -> IO CInt
+  c_radosAioWaitForSafe :: RadosCompletion -> IO CInt
 foreign import ccall "rados_aio_is_complete"
   c_radosAioIsComplete :: RadosCompletion -> IO CInt
 foreign import ccall "rados_aio_is_safe"
